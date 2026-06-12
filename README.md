@@ -1,6 +1,6 @@
 # ytygxf-skills
 
-ytygxf 个人制作的 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) Skill 合集。
+ytygxf 个人制作的Agent Skill 合集。
 
 这里收录的都是实际工作中沉淀出来的自动化技能——解决重复劳动、提升文档质量、让 AI 真正融入工作流。
 
