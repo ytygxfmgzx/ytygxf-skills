@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>类似项目业绩汇总表</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 760px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #e3f2fd;
+        }
+        .score {
+            font-weight: bold;
+            color: #27ae60;
+        }
+        .total {
+            background-color: #2c3e50 !important;
+            color: white;
+            font-weight: bold;
+        }
+        .note {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>类似项目业绩汇总表</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>项目名称</th>
+                    <th>合同签订时间</th>
+                    <th>服务内容</th>
+                    <th>合同金额（万元）</th>
+                    <th>采购人</th>
+                    <th>得分</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>XX医院后勤综合服务项目</td>
+                    <td>2022年3月</td>
+                    <td>保洁服务、中央运送服务</td>
+                    <td>580</td>
+                    <td>XX市人民医院</td>
+                    <td class="score">4分</td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>XX医院物业管理服务项目</td>
+                    <td>2023年6月</td>
+                    <td>环境清洁消毒、医疗废物管理</td>
+                    <td>420</td>
+                    <td>XX市中心医院</td>
+                    <td class="score">4分</td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>XX医院后勤保障服务项目</td>
+                    <td>2024年2月</td>
+                    <td>综合维修服务、锅炉系统运维</td>
+                    <td>350</td>
+                    <td>XX市第一人民医院</td>
+                    <td class="score">4分</td>
+                </tr>
+                <tr class="total">
+                    <td colspan="6">合计得分</td>
+                    <td>12分</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="note">注：以上业绩均为投标人自身业绩，合同复印件及采购人综合评价证明详见附件。</p>
+    </div>
+</body>
+</html>

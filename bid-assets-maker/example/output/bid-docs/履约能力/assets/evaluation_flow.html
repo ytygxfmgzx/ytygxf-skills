@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>采购人综合评价流程</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 760px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .flow-chart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .flow-step {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+        }
+        .step-box {
+            flex: 1;
+            padding: 15px 20px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+        }
+        .step-box.green {
+            background-color: #27ae60;
+        }
+        .step-box.orange {
+            background-color: #f39c12;
+        }
+        .step-box.purple {
+            background-color: #9b59b6;
+        }
+        .arrow {
+            width: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .arrow::after {
+            content: "→";
+            font-size: 24px;
+            color: #7f8c8d;
+        }
+        .arrow-down::after {
+            content: "↓";
+            font-size: 24px;
+            color: #7f8c8d;
+        }
+        .legend {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #ecf0f1;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        .note {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 20px;
+            text-align: center;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>采购人综合评价流程</h1>
+        <div class="flow-chart">
+            <div class="flow-step">
+                <div class="step-box">项目合同签订</div>
+            </div>
+            <div class="arrow-down"></div>
+            <div class="flow-step">
+                <div class="step-box green">项目实施与履约</div>
+            </div>
+            <div class="arrow-down"></div>
+            <div class="flow-step">
+                <div class="step-box orange">项目验收与评估</div>
+            </div>
+            <div class="arrow-down"></div>
+            <div class="flow-step">
+                <div class="step-box purple">采购人出具综合评价证明</div>
+            </div>
+        </div>
+        <div class="legend">
+            <div class="legend-title">流程说明</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3498db;"></div>
+                <span>合同签订：明确服务范围、期限、质量要求</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #27ae60;"></div>
+                <span>项目实施：按照合同约定提供后勤综合服务</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f39c12;"></div>
+                <span>验收评估：采购人对服务质量进行综合评估</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #9b59b6;"></div>
+                <span>出具证明：采购人盖章出具满意度或优秀评价证明</span>
+            </div>
+        </div>
+        <p class="note">注：综合评价证明需加盖采购人公章，评价等级为满意/优秀/合格及以上</p>
+    </div>
+</body>
+</html>
