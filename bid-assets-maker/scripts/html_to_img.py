@@ -13,7 +13,6 @@ import os
 import sys
 import shutil
 import argparse
-import math
 from urllib.parse import quote
 
 PILLOW_AVAILABLE = False
@@ -174,27 +173,21 @@ def gen_piechart_html(title, labels, values, out):
     if not total:
         return
     colors = ["#4A90D9", "#F5A623", "#7ED321", "#D0021B", "#9013FE", "#50E3C2", "#B8E986", "#F8E71C"]
-    cur = 0
-    slices = ""
+    cur_pct = 0.0
+    stops = []
     legend = ""
     for i, (l, v) in enumerate(zip(labels, values)):
         if not v:
             continue
-        a = (v / total) * 360
         c = colors[i % len(colors)]
-        s = cur * math.pi / 180
-        e = (cur + a) * math.pi / 180
-        x1 = 150 + 120 * math.cos(s)
-        y1 = 150 + 120 * math.sin(s)
-        x2 = 150 + 120 * math.cos(e)
-        y2 = 150 + 120 * math.sin(e)
-        la = 1 if a > 180 else 0
-        slices += f'<path d="M150,150 L{x1:.1f},{y1:.1f} A120,120 {la},1 {x2:.1f},{y2:.1f} Z" fill="{c}"/>\n'
-        cur += a
+        next_pct = cur_pct + (v / total) * 100
+        stops.append(f"{c} {cur_pct:.2f}% {next_pct:.2f}%")
+        cur_pct = next_pct
         legend += f'<div style="display:flex;align-items:center;gap:4px;font-size:12px"><div style="width:12px;height:12px;background:{c};border-radius:2px"></div>{l} ({v})</div>\n'
+    gradient = ", ".join(stops)
     html = f"""<!DOCTYPE html><html><meta charset="UTF-8"><body style="font-family:sans-serif;padding:20px;background:#fff;max-width:760px;margin:0 auto">
 <div style="display:flex;align-items:center;gap:20px">
-<svg width="300" height="300" viewBox="0 0 300 300">{slices}</svg>
+<div style="width:300px;height:300px;border-radius:50%;background:conic-gradient({gradient})"></div>
 <div>{legend}</div></div>
 <div style="text-align:center;font-weight:bold;margin-top:10px">{title}</div></body></html>"""
     with open(out, "w", encoding="utf-8") as f:

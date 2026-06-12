@@ -175,4 +175,12 @@ output/bid-docs/ (Markdown + 图表 + 图片)
 
 ## 许可
 
-仅供个人学习和使用。
+本项目基于 [MIT 许可证](./LICENSE) 开源。
+
+## 赞赏支持
+
+如果这个项目对你有帮助，欢迎请作者喝杯咖啡 ☕
+
+<div align="center">
+  <img src="../assets/appreciation_qrcode.png" width="200" alt="赞赏码" />
+</div>

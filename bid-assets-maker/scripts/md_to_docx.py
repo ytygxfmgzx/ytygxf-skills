@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """
-MD → DOCX conversion script.
+MD -> DOCX conversion script.
+Supports multiple MD files as input, each resolved independently.
+
+Usage:
+  # Multiple chapters into one DOCX:
+  python md_to_docx.py -o output.docx --title "Title" --heading-offset 1 \
+    chapter1/complete.md chapter2/complete.md ...
+
+  # Single file (backward compatible):
+  python md_to_docx.py input.md output.docx
+
 Priority:
   1. Use docx npm package (better formatting)
   2. Fallback to pure stdlib (assets/deps/scripts/pack_docx_std.py)
-
-Supports --heading-offset N to shift all heading levels by N.
-When merging chapters into a single DOCX, use --heading-offset 1
-so each chapter's # becomes H2 (chapter name = H1 from plan.md).
 """
 
 import os
@@ -54,65 +60,79 @@ def _build_node_env():
     return env
 
 
-def use_npm(md_file, output_path, assets_dir=None, heading_offset=0):
-    """Use docx npm package to create DOCX."""
-    md_file_js = _escape_js_path(md_file)
-    output_path_js = _escape_js_path(output_path)
-
-    # 读取 MD 内容，提取图片实际尺寸用于等比缩放
+def _collect_img_dimensions(md_file):
+    """提取单个 MD 文件中所有图片的实际尺寸。"""
+    md_dir = os.path.dirname(os.path.abspath(md_file))
     with open(md_file, 'r', encoding='utf-8') as f:
         md_content = f.read()
 
-    img_dimensions = {}
+    img_dims = {}
     try:
         from PIL import Image as PILImage
-        md_dir = os.path.dirname(os.path.abspath(md_file))
         for match in re.finditer(r'<img\s+src="([^"]+)"', md_content):
             img_rel = match.group(1)
             img_path = os.path.join(md_dir, img_rel)
             if os.path.exists(img_path):
                 try:
                     with PILImage.open(img_path) as im:
-                        img_dimensions[img_rel] = [im.width, im.height]
+                        img_dims[img_rel] = [im.width, im.height]
                 except Exception:
                     pass
     except ImportError:
         pass
-    img_dims_js = json.dumps(img_dimensions)
+
+    return img_dims
+
+
+def use_npm(md_files, output_path, title=None, heading_offset=0):
+    """Use docx npm package to create DOCX from one or more MD files."""
+    output_path_js = _escape_js_path(output_path)
+
+    # Build manifest: each entry has md_file path, md_dir, img_dims
+    manifest = {
+        'title': title,
+        'headingOffset': heading_offset,
+        'entries': []
+    }
+    for md_file in md_files:
+        md_dir = os.path.dirname(os.path.abspath(md_file))
+        img_dims = _collect_img_dimensions(md_file)
+        manifest['entries'].append({
+            'path': os.path.abspath(md_file),
+            'mdDir': md_dir,
+            'imgDims': img_dims,
+        })
+
+    manifest_path = output_path + '.manifest.json'
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump(manifest, f, ensure_ascii=False)
+
+    manifest_js = _escape_js_path(manifest_path)
 
     js_code = f'''
 const fs = require("fs");
+const path = require("path");
 const {{ Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
          AlignmentType, HeadingLevel, BorderStyle, WidthType, ImageRun }} = require("docx");
 
-const MAX_IMG_W = 420;
-const MAX_IMG_H = 560;
-const headingOffset = {heading_offset};
+const manifest = JSON.parse(fs.readFileSync({manifest_js}, "utf-8"));
+const headingOffset = manifest.headingOffset;
 const maxLevel = 7;
-const imgDimensions = {img_dims_js};
-
-const mdContent = fs.readFileSync({md_file_js}, "utf-8");
-const lines = mdContent.split(/\\r?\\n/);
-
-// 标题规范化：只保留第一个 H1，后续 H1 降为 H2
-let foundFirstH1 = false;
-for (let j = 0; j < lines.length; j++) {{
-    const hm2 = lines[j].match(/^(#{{1,6}})\\s+(.+)$/);
-    if (hm2 && hm2[1] === '#') {{
-        if (!foundFirstH1) {{
-            foundFirstH1 = true;
-        }} else {{
-            lines[j] = '## ' + hm2[2];
-        }}
-    }}
-}}
 
 const children = [];
 
 const PAGE_WIDTH = 11906;
-const PAGE_HEIGHT = 16838;
 const MARGIN = 1440;
 const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
+
+// Insert title H1 if provided
+if (manifest.title) {{
+    children.push(new Paragraph({{
+        heading: HeadingLevel.HEADING_1,
+        spacing: {{ before: 240, after: 120, line: 280 }},
+        children: [new TextRun({{ text: manifest.title, font: "SimHei", size: 32, bold: true }})]
+    }}));
+}}
 
 function stripNumbering(text) {{
     text = text.replace(/^[\\d]+[\\.\\d]*\\s+/, "");
@@ -168,7 +188,11 @@ function addTable(rows) {{
     }}));
 }}
 
-function addImage(imgPath, actualW, actualH) {{
+const MAX_IMG_W = 420;
+const MAX_IMG_H = 560;
+
+function addImage(baseDir, imgRelPath, actualW, actualH) {{
+    const imgPath = path.resolve(baseDir, imgRelPath);
     if (!fs.existsSync(imgPath)) return;
     const imgData = fs.readFileSync(imgPath);
     const ext = imgPath.split(".").pop().toLowerCase();
@@ -194,43 +218,51 @@ function addImage(imgPath, actualW, actualH) {{
     }}));
 }}
 
-let i = 0;
-while (i < lines.length) {{
-    const line = lines[i].trim();
-    if (!line) {{ i++; continue; }}
+// Process each MD file
+manifest.entries.forEach(entry => {{
+    const mdDir = entry.mdDir;
+    const imgDims = entry.imgDims;
+    const mdContent = fs.readFileSync(entry.path, "utf-8");
+    const lines = mdContent.split(/\\r?\\n/);
 
-    const hm = line.match(/^(#{{1,6}})\\s+(.+)$/);
-    if (hm) {{
-        addHeading(hm[2], hm[1].length);
-        i++;
-        continue;
-    }}
+    let i = 0;
+    while (i < lines.length) {{
+        const line = lines[i].trim();
+        if (!line) {{ i++; continue; }}
 
-    if (line.startsWith("|")) {{
-        const rows = [];
-        while (i < lines.length && lines[i].trim().startsWith("|")) {{
-            const l = lines[i].trim();
-            if (!l.match(/^\\|[\\s:-]+\\|/)) {{
-                const cells = l.split("|").slice(1, -1).map(c => c.trim());
-                rows.push(cells);
-            }}
+        const hm = line.match(/^(#{{1,6}})\\s+(.+)$/);
+        if (hm) {{
+            addHeading(hm[2], hm[1].length);
             i++;
+            continue;
         }}
-        addTable(rows);
-        continue;
-    }}
 
-    const imgMatch = line.match(/<img\\s+src="([^"]+)"\\s*\\/?>/i);
-    if (imgMatch) {{
-        const dims = imgDimensions[imgMatch[1]] || [null, null];
-        addImage(imgMatch[1], dims[0], dims[1]);
+        if (line.startsWith("|")) {{
+            const rows = [];
+            while (i < lines.length && lines[i].trim().startsWith("|")) {{
+                const l = lines[i].trim();
+                if (!l.match(/^\\|[\\s:-]+\\|/)) {{
+                    const cells = l.split("|").slice(1, -1).map(c => c.trim());
+                    rows.push(cells);
+                }}
+                i++;
+            }}
+            addTable(rows);
+            continue;
+        }}
+
+        const imgMatch = line.match(/<img\\s+src="([^"]+)"\\s*\\/?>/i);
+        if (imgMatch) {{
+            const dims = imgDims[imgMatch[1]] || [null, null];
+            addImage(mdDir, imgMatch[1], dims[0], dims[1]);
+            i++;
+            continue;
+        }}
+
+        addText(line);
         i++;
-        continue;
     }}
-
-    addText(line);
-    i++;
-}}
+}});
 
 const doc = new Document({{
     styles: {{
@@ -276,19 +308,21 @@ Packer.toBuffer(doc).then(buffer => {{
 }});
 '''
 
-    js_path = md_file + '.gen.js'
+    js_path = output_path + '.gen.js'
     with open(js_path, 'w', encoding='utf-8') as f:
         f.write(js_code)
 
     env = _build_node_env()
     result = subprocess.run(
         ['node', js_path],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, timeout=120,
         env=env
     )
 
-    if os.path.exists(js_path):
-        os.unlink(js_path)
+    # Cleanup temp files
+    for p in [js_path, manifest_path]:
+        if os.path.exists(p):
+            os.unlink(p)
 
     if os.path.exists(output_path):
         print(f'DOCX created (npm): {output_path}')
@@ -298,31 +332,40 @@ Packer.toBuffer(doc).then(buffer => {{
         return False
 
 
-def use_stdlib(md_file, output_path, assets_dir, heading_offset=0):
-    """Fallback to pure stdlib packer."""
+def use_stdlib(md_files, output_path, assets_dir=None, heading_offset=0):
+    """Fallback to pure stdlib packer (single file only)."""
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'assets', 'deps', 'scripts'))
     from pack_docx_std import pack
+    md_file = md_files[0] if isinstance(md_files, list) else md_files
     pack(md_file, output_path, assets_dir, heading_offset=heading_offset)
     return True
 
 
 def main():
     p = argparse.ArgumentParser(description='Convert MD to DOCX')
-    p.add_argument('md_file', help='Input .md file')
-    p.add_argument('output', help='Output .docx file')
-    p.add_argument('--media-dir', help='Media/assets directory')
+    p.add_argument('md_files', nargs='+', help='Input .md file(s)')
+    p.add_argument('-o', '--output', help='Output .docx file')
+    p.add_argument('--title', help='Document title (inserted as H1)')
+    p.add_argument('--media-dir', help=argparse.SUPPRESS)  # deprecated
     p.add_argument('--force-stdlib', action='store_true', help='Force stdlib')
     p.add_argument('--heading-offset', type=int, default=0,
-                   help='Shift heading levels by N (e.g. 1 makes # → H2, ## → H3)')
+                   help='Shift heading levels by N (e.g. 1 makes # -> H2, ## -> H3)')
     args = p.parse_args()
 
+    # Backward compat: if no -o and 2nd positional arg is .docx
+    if args.output is None:
+        if len(args.md_files) >= 2 and args.md_files[-1].endswith(('.docx', '.DOCX')):
+            args.output = args.md_files.pop()
+        else:
+            p.error('Output file required. Use -o output.docx')
+
     if not args.force_stdlib:
-        if use_npm(args.md_file, args.output, args.media_dir,
-                   heading_offset=args.heading_offset):
+        if use_npm(args.md_files, args.output,
+                   title=args.title, heading_offset=args.heading_offset):
             return
         print('npm method failed, falling back to stdlib...', file=sys.stderr)
 
-    use_stdlib(args.md_file, args.output, args.media_dir,
+    use_stdlib(args.md_files, args.output, args.media_dir,
                heading_offset=args.heading_offset)
 
 

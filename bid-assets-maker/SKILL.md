@@ -289,7 +289,8 @@ plan.md 必须包含以下结构：
         │    ✗ 禁止: 在章节内使用多个 # 标题                │
         │    ✓ 正确: # 章节名称（仅一个），后续用 ##、###... │
         │    ✓ 正确: ## 项目管理方案                         │
-        │ 4. 配图要求:                                     │
+        │ 4. 表格要求:可以用表格展示内容的，优先用表格进行内容展示                                     │
+        │ 5. 配图要求:                                     │
         │    - 每个末级标题至少 1 张图/表                   │
         │    - 流程类内容必须有流程图                       │
         │    - 使用 python .claude/skills/bid-assets-maker/ │
@@ -388,6 +389,7 @@ output/bid-docs/
    - 所有流程必须有流程图
    - 数据用图表呈现（柱状图、饼图、趋势图等）
    - 管理类内容尽量使用架构图、流程图
+   - 可以用表格展示内容的，优先用表格进行内容展示
 
 #### 配图规则
 
@@ -417,13 +419,9 @@ output/bid-docs/
 **输入**: `output/bid-docs/` 各章节 complete.md + assets
 **输出**: `output/招标文件名称-投标文件.docx`
 
-**标题层级映射规则（在此阶段处理）**：
+**标题层级映射规则（通过 `--heading-offset 1` + `--title` 自动实现）**：
 
-**第一步：插入文档总标题 H1**
-在处理所有章节之前，先插入文档总标题作为 H1。总标题来源为 plan.md 中制作章节的父级名称（如"值班巡检方案"），直接写入 DOCX。
-
-**第二步：逐章节处理内容**
-每个章节的 complete.md 通过 `--heading-offset 1` 转换，章节内的 `# 章节名` 自然变为 H2：
+`md_to_docx.py` 接受多个 MD 文件，每个文件独立解析图片路径。`--title` 插入文档总标题 H1，`--heading-offset 1` 将每个章节的标题自动偏移：
 
 | MD 中的标题 | 加偏移后在 DOCX 中 | 含义 |
 |-------------|-------------------|------|
@@ -431,8 +429,6 @@ output/bid-docs/
 | `## 分类` | H3 | 章节下的分类（如"方案概述"） |
 | `### 内容` | H4 | 小节内容（如"方案目标"） |
 | `#### 细节` | H5 | 更细内容 |
-
-**注意**：不要单独插入章节名作为 H1。章节的 `# 章节名` 在 complete.md 中已存在，经 offset 后自动变为 H2。
 
 **方法**：
 
@@ -442,15 +438,28 @@ output/bid-docs/
    ```
    扫描所有 PNG，自动裁剪高度 == 10800 的未裁剪图片。如果全部已裁剪则无操作。
 
-2. 插入文档总标题 H1（来自 plan.md 中制作的章节名称，如“值班巡检方案”），直接写入 DOCX
+2. **一次性转换所有章节为 DOCX**：
+   按 plan.md 中章节顺序，将所有章节的 `*-complete.md` 一次性传入 `md_to_docx.py`，脚本内部自动按顺序合并，每个章节的图片基于各自文件所在目录独立解析。
+   示例
+   ```bash
+   python scripts/md_to_docx.py \
+     -o output/投标文件.docx \
+     --title "值班巡检方案" \
+     --heading-offset 1 \
+     output/bid-docs/值班巡检方案概述/值班巡检方案概述-complete.md \
+     output/bid-docs/日常值班巡检过程管理/日常值班巡检过程管理-complete.md \
+     output/bid-docs/巡检表单管理/巡检表单管理-complete.md \
+     output/bid-docs/问题管理/问题管理-complete.md \
+     output/bid-docs/交接班管理/交接班管理-complete.md \
+     output/bid-docs/值班巡检保障措施/值班巡检保障措施-complete.md
+   ```
+   - `--title`：文档总标题，作为 H1 插入（来自 plan.md 中制作章节的父级名称）
+   - `--heading-offset 1`：每个章节内的 `# 章节名` 自动变为 H2
+   - 无需生成 combined.md，无需修正图片路径
 
-3. 按 plan.md 中章节顺序，依次处理每个章节：
-   - 使用 `scripts/md_to_docx.py` 转换该章节的 complete.md（`# 章节名` 经 offset 后自动变为 H2）
-     ```bash
-     python scripts/md_to_docx.py 章节-complete.md output.docx --heading-offset 1 --media-dir assets/
-     ```
-   - 将结果追加到最终 DOCX
-4. 打包后验证文件完整性
+3. **打包后验证**：
+   - 检查生成的 DOCX 文件大小是否合理（应明显大于纯文本 DOCX）
+   - 打开 DOCX 确认图片已正确嵌入
 
 **中国标书格式规范**：
 - 页面：A4（210mm × 297mm）
